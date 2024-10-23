@@ -1,0 +1,38 @@
+- repository: autowarefoundation/autoware
+  files:
+    - source: .github/dependabot.yaml
+    - source: .github/workflows/pre-commit.yaml
+    - source: .github/workflows/pre-commit-optional.yaml
+    - source: .github/workflows/semantic-pull-request.yaml
+    - source: .github/workflows/spell-check-differential.yaml
+    - source: .markdown-link-check.json
+    - source: .markdownlint.yaml
+    - source: .pre-commit-config-optional.yaml
+    - source: .prettierignore
+    - source: .prettierrc.yaml
+    - source: .yamllint.yaml
+
+- repository: autowarefoundation/autoware-github-actions
+  files:
+    - source: .github/workflows/github-release.yaml
+    - source: cliff.toml
+
+- repository: autowarefoundation/autoware-documentation
+  files:
+    - source: .github/workflows/deploy-docs.yaml
+      pre-commands: |
+        sd -s -- \
+        '      - "**/*.jpg"' \
+        '      - "**/*.jpg"
+              - "**/*.py"' \
+        {source}
+        sd -- \
+        '          latest: (.*)' \
+        '          latest: $1
+                  mkdocs-requirements-txt: ./mkdocs-requirements.txt' \
+        {source}
+    - source: .github/workflows/delete-closed-pr-docs.yaml
+
+- repository: tier4/caret_common
+  files:
+    - source: .cspell.json

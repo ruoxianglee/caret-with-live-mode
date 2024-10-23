@@ -1,0 +1,82 @@
+name: pytest
+
+on:
+  pull_request:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    container: ghcr.io/autowarefoundation/autoware-universe:humble-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install LTTng
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y software-properties-common
+          sudo apt-add-repository ppa:lttng/stable-2.13
+          sudo apt-get update
+          sudo apt-get install -y python3-babeltrace python3-lttng python3-bt2
+        shell: bash
+
+      - name: ROSDEP install
+        run: |
+          sudo apt-get install -y python3-rosdep
+          # sudo rosdep init
+          rosdep update
+          rosdep install -i --from-paths . -y --rosdistro humble
+      - name: Install dependent packages
+        run: python3 -m pip install -r src/requirements.txt
+
+      - name: Get package list
+        run: |
+          dpkg -l > package_list.txt
+          python3 -m pip list > pip_list.txt
+      - name: Upload package list
+        uses: actions/upload-artifact@v3
+        with:
+          name: package_list
+          path: |
+            package_list.txt
+            pip_list.txt
+      - name: Clone caret_analyze_cpp_impl
+        run: |
+          git clone https://github.com/tier4/caret_analyze_cpp_impl.git
+      - name: Restore Cache
+        id: cpp_impl-cache
+        uses: actions/cache/restore@v3
+        with:
+          path: caret_analyze_cpp_impl/install
+          key: ${{ runner.os }}-node-cpp_impl-${{ hashFiles('caret_analyze_cpp_impl/CARET_analyze_cpp_impl/**') }}
+
+      - name: Build caret_analyze_cpp_impl
+        if: steps.cpp_impl-cache.outputs.cache-hit != 'true'
+        run: |
+          source /opt/ros/humble/setup.bash
+          cd caret_analyze_cpp_impl/
+          colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release
+        shell: bash
+
+      - name: Cache caret_analyze_cpp_impl
+        if: steps.cpp_impl-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v3
+        with:
+          path: caret_analyze_cpp_impl/install
+          key: ${{ runner.os }}-node-cpp_impl-${{ hashFiles('caret_analyze_cpp_impl/CARET_analyze_cpp_impl/**') }}
+
+      - name: Run pytest
+        id: pytest_action
+        run: |
+          source /opt/ros/humble/setup.bash
+          source caret_analyze_cpp_impl/install/setup.bash
+          cd src
+          python3 -m pytest
+        shell: bash
+
+      - name: If pytest failure
+        if: failure() && steps.pytest_action.outcome == 'failure'
+        run: |
+          echo "Did you send PR to both caret_analyze and caret_analyze_cpp_impl?"
+          echo "In that case, this pytest action may fail because it tests new caret_analyze in combination with old caret_analyze_cpp_impl."
+          exit 1

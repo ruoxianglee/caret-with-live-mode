@@ -1,0 +1,16 @@
+- name: Install graphviz
+  apt:
+    name:
+      - graphviz
+      - graphviz-dev
+    update_cache: true
+  become: true
+
+- name: Install caret dependent packages
+  pip:
+    requirements: "{{ requirements_path }}"
+    executable: pip3
+    extra_args: --ignore-installed
+  become: true
+  args:
+    chdir: "{{ WORKSPACE_ROOT }}"

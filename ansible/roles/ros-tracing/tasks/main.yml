@@ -1,0 +1,27 @@
+- name: Install dependencies of python
+  apt:
+    name:
+      - build-essential
+      - python3-bt2
+  become: true
+
+- name: install some python modules for caret
+  pip:
+    requirements: "{{ requirements_path }}"
+    executable: pip3
+  become: true
+  args:
+    chdir: "{{ WORKSPACE_ROOT }}"
+
+- name: Install ros-tracing
+  apt:
+    name:
+      - ros-{{ rosdistro }}-ros2trace
+      - ros-{{ rosdistro }}-ros2trace-analysis
+      - ros-{{ rosdistro }}-tracetools
+      - ros-{{ rosdistro }}-tracetools-analysis
+      - ros-{{ rosdistro }}-tracetools-launch
+      - ros-{{ rosdistro }}-tracetools-read
+      - ros-{{ rosdistro }}-tracetools-test
+      - ros-{{ rosdistro }}-tracetools-trace
+  become: true
